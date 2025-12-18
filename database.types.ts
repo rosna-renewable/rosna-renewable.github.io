@@ -45,7 +45,7 @@ export type Database = {
           panel_cable: number
           price: number
           struct: string
-          watt: number | null
+          watt: number
           wiring_cable: number
         }
         Insert: {
@@ -63,7 +63,7 @@ export type Database = {
           panel_cable?: number
           price?: number
           struct?: string
-          watt?: number | null
+          watt?: number
           wiring_cable?: number
         }
         Update: {
@@ -81,7 +81,7 @@ export type Database = {
           panel_cable?: number
           price?: number
           struct?: string
-          watt?: number | null
+          watt?: number
           wiring_cable?: number
         }
         Relationships: []

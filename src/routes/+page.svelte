@@ -16,12 +16,14 @@
 	});
 </script>
 
-<h1>Solar Inventory</h1>
+<div class="page">
+	<h1>Solar Inventory</h1>
 
-{#if error}
-	<p style="color:red">{error}</p>
-{:else if data.length === 0}
-	<p>Loading...</p>
-{:else}
-	<View {data} />
-{/if}
+	{#if error}
+		<p style="color:red">{error}</p>
+	{:else if data.length === 0}
+		<p>Loading...</p>
+	{:else}
+		<View {data} />
+	{/if}
+</div>
