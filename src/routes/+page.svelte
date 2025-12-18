@@ -2,15 +2,18 @@
 	import { onMount } from 'svelte';
 	import { client, type Solar } from '$lib/supabase/client';
 	import View from './View.svelte';
+	import Filter from './Filter.svelte';
 
-	let data: Solar[] = [];
-	let error: string = '';
+	let all_data: Solar[] = $state([]);
+	let data: Solar[] = $state([]);
+	let error: string = $state('');
 
 	onMount(async () => {
 		const { data: fetchedData, error: fetchedError } = await client.from('solar').select('*');
 		if (fetchedError) {
 			error = fetchedError.message;
 		} else if (fetchedData) {
+			all_data = fetchedData;
 			data = fetchedData;
 		}
 	});
@@ -21,9 +24,10 @@
 
 	{#if error}
 		<p style="color:red">{error}</p>
-	{:else if data.length === 0}
+	{:else if all_data.length === 0}
 		<p>Loading...</p>
 	{:else}
+		<Filter data={all_data} bind:filteredData={data} />
 		<View {data} />
 	{/if}
 </div>

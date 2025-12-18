@@ -1,31 +1,8 @@
 <script lang="ts">
 	import type { Solar } from '$lib/supabase/client';
+	import { entries } from '$lib/supabase/data';
 
 	let { data }: { data: Solar[] } = $props();
-
-	const entries = [
-		{ label: 'Id', get: (solar: Solar) => '0x' + solar.id.toString(16).padStart(8, '0') },
-		{ label: 'Price', get: (solar: Solar) => solar.price },
-		{ label: 'Watt', get: (solar: Solar) => solar.watt },
-		{ label: 'Battery Ah', get: (solar: Solar) => solar.battery },
-		{ label: 'Battery Count', get: (solar: Solar) => solar.battery_count },
-		{ label: 'Total Battery Ah', get: (solar: Solar) => solar.battery * solar.battery_count },
-		{ label: 'Charge Controller', get: (solar: Solar) => solar.charge_crt },
-		{ label: 'Panel Cabel (ft)', get: (solar: Solar) => solar.panel_cable },
-		{ label: 'Wiring Cabel (ft)', get: (solar: Solar) => solar.wiring_cable },
-		{ label: 'DC LED Light', get: (solar: Solar) => solar.dc_led },
-		{ label: 'DC Fan Small', get: (solar: Solar) => solar.dc_fan_small },
-		{ label: 'DC Fan Table', get: (solar: Solar) => solar.dc_fan_table },
-		{ label: 'DC Fan Stand', get: (solar: Solar) => solar.dc_fan_stand },
-		{
-			label: 'DC Fan Total',
-			get: (solar: Solar) => solar.dc_fan_small + solar.dc_fan_table + solar.dc_fan_stand
-		},
-		{ label: 'Mobile Charger', get: (solar: Solar) => solar.mobile },
-		{ label: 'Structure + Other Accessories', get: (solar: Solar) => solar.struct },
-		{ label: 'Runtime Light + Fan (Hour)', get: (solar: Solar) => solar.light_fan },
-		{ label: 'Runtime Fan Extra (Hour)', get: (solar: Solar) => solar.light_fan }
-	];
 
 	let sort_dir = $state(1);
 	let sort_entry = $state(1);
