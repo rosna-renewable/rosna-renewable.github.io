@@ -38,9 +38,9 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
 
-      - name: Build with Astro
+      - name: Build
         run: |
-          bun build \
+          bun run build \
             --site "${{ steps.pages.outputs.origin }}" \
             --base "${{ steps.pages.outputs.base_path }}"
       - name: Upload artifact
