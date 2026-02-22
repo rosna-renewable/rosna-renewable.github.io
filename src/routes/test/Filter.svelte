@@ -1,6 +1,7 @@
 <script lang="ts">
-	import Modal from './ui/Modal.svelte';
-	import Range from './ui/Range.svelte';
+	import Modal from '../ui/Modal.svelte';
+	import Range from '../ui/Range.svelte';
+
 	import { type Solar } from '$lib/supabase/client';
 	import { entries } from '$lib/supabase/data';
 

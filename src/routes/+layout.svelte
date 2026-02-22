@@ -6,33 +6,59 @@
 
 <div class="app">
 	<main>
-		{@render children()}
+		<div class="bg">
+			<enhanced:img src="$lib/assets/bg.jpg?blur=7&brightness=0.8" alt="" />
+		</div>
+
+		<div class="content">
+			<div class="logo-div">
+				<a href="/" aria-label="Home">
+					<enhanced:img src="$lib/assets/life.png?saturation=1.5" class="logo" alt="Logo" />
+				</a>
+			</div>
+
+			{@render children()}
+		</div>
 	</main>
 
 	<footer></footer>
 </div>
 
-<!-- <style> -->
-<!-- 	.app { -->
-<!-- 		display: flex; -->
-<!-- 		flex-direction: column; -->
-<!-- 		min-height: 100vh; -->
-<!-- 	} -->
-<!---->
-<!-- 	main { -->
-<!-- 		flex: 1; -->
-<!-- 		display: flex; -->
-<!-- 		flex-direction: column; -->
-<!-- 		width: 100%; -->
-<!-- 		margin: 0 auto; -->
-<!-- 		box-sizing: border-box; -->
-<!-- 	} -->
-<!---->
-<!-- 	footer { -->
-<!-- 		display: flex; -->
-<!-- 		flex-direction: column; -->
-<!-- 		justify-content: center; -->
-<!-- 		align-items: center; -->
-<!-- 		padding: 12px; -->
-<!-- 	} -->
-<!-- </style> -->
+<style>
+	html,
+	body {
+		margin: 0;
+		height: 100%;
+	}
+
+	.bg {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		overflow: hidden;
+	}
+
+	.bg :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.content {
+		position: relative;
+		z-index: 1;
+	}
+
+	.logo-div {
+		display: flex;
+		justify-content: center; /* horizontal center */
+		align-items: flex-start; /* top alignment */
+		padding-top: 1vh; /* responsive space from top */
+	}
+
+	.logo {
+		width: clamp(100px, 20vw, 200px); /* responsive width */
+		height: auto;
+		cursor: pointer; /* indicates clickable */
+	}
+</style>
