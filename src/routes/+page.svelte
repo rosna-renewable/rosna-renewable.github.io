@@ -35,18 +35,18 @@
 	<h1 class="title">Featured Products</h1>
 
 	<div class="cards">
-		<a href="/page1" class="card">
+		<a href="/panels" class="card">
 			<span class="card-title">Solar Panels</span>
 			<span class="card-desc">High efficiency energy solutions</span>
 		</a>
 
 		<div class="bottom-row">
-			<a href="/page2" class="card">
+			<a href="/pumps" class="card">
 				<span class="card-title">Solar Pumps</span>
 				<span class="card-desc">Reliable water pumping systems</span>
 			</a>
 
-			<a href="/page3" class="card">
+			<a href="/smt" class="card">
 				<span class="card-title">SMT</span>
 				<span class="card-desc">Smart monitoring technology</span>
 			</a>
