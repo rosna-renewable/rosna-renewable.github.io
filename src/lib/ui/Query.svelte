@@ -2,8 +2,7 @@
 	import { type NameMap, type RangeMap } from '$lib/ui/query';
 	import Modal from '$lib/ui/Modal.svelte';
 	import RangeInput from '$lib/ui/RangeInput.svelte';
-	import { onMount, untrack, type Snippet } from 'svelte';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { onMount, type Snippet } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	type Props = {
@@ -26,66 +25,110 @@
 		children
 	}: Props = $props();
 
-	let mounted = $state(false);
 	let show = $state(false);
 	let has_selected = $state(false);
 	let selected_key = $state<keyof T | null>(null);
 
 	// svelte-ignore state_referenced_locally
 	const keys = Object.keys(ranges ?? {}) as (keyof T)[];
-	let params: SvelteURLSearchParams;
+	let params: URLSearchParams = new URLSearchParams();
 
 	// svelte-ignore state_referenced_locally
 	let sort_key = $state(sort_by);
 	let sort_asc = $state(true);
 	let page = $state(0);
 
-	const empty_filter_enable = Object.fromEntries(
-		// svelte-ignore state_referenced_locally
-		keys.map((k) => [k, false])
-	) as Record<keyof T, boolean>;
-
-	let filter_enable = $state({ ...empty_filter_enable });
+	let filter_enable = $state(
+		Object.fromEntries(
+			// svelte-ignore state_referenced_locally
+			keys.map((k) => [k, false])
+		) as Record<keyof T, boolean>
+	);
 
 	// svelte-ignore state_referenced_locally
 	let filter_range = $state(structuredClone(ranges));
+	const sorted_result = $derived.by(() => {
+		const active = keys
+			.filter((k) => filter_enable[k])
+			.map((k) => ({ key: k, min: filter_range[k][0], max: filter_range[k][1] }));
 
-	$effect(() => {
-		const result = new Map<number, T>();
+		const filtered: [number, T][] = [];
 
 		for (const [id, entry] of data) {
 			let keep = true;
 
-			for (const key of keys) {
-				if (!filter_enable[key]) continue;
-
-				const [min, max] = filter_range[key];
-				const value = entry[key] as number;
-
-				if (value < min || value > max) {
+			for (const f of active) {
+				const val = entry[f.key] as number;
+				if (val < f.min || val > f.max) {
 					keep = false;
 					break;
 				}
 			}
 
-			if (keep) result.set(id, entry);
+			if (keep) filtered.push([id, entry]);
 		}
 
-		const sorted = [...result.entries()].sort(([_, a], [__, b]) => {
+		const dir = sort_asc ? 1 : -1;
+
+		return filtered.sort(([, a], [, b]) => {
 			const va = a[sort_key];
 			const vb = b[sort_key];
 
 			if (va === vb) return 0;
-
-			return sort_asc ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
+			return va > vb ? dir : -dir;
 		});
+	});
 
-		output = new Map(sorted);
+	const total_pages = $derived(Math.ceil(sorted_result.length / entry_count) || 1);
+
+	const page_buttons = $derived.by(() => {
+		const tp = total_pages;
+		const current = page + 1;
+
+		if (tp <= 10) {
+			return Array.from({ length: tp }, (_, i) => i + 1);
+		}
+
+		// We want: First 2, Last 2, and Current Center (+/- 1)
+		const pages = new Set<number>();
+		pages.add(1);
+		pages.add(2);
+		pages.add(tp - 1);
+		pages.add(tp);
+
+		// Add current block safely inside bounds
+		if (current > 1) pages.add(current - 1);
+		pages.add(current);
+		if (current < tp) pages.add(current + 1);
+
+		const sorted = Array.from(pages).sort((a, b) => a - b);
+		const result: (number | string)[] = [];
+
+		// Insert '...' where there are gaps
+		for (let i = 0; i < sorted.length; i++) {
+			if (i > 0 && sorted[i] - sorted[i - 1] > 1) {
+				result.push('...');
+			}
+			result.push(sorted[i]);
+		}
+
+		return result;
+	});
+
+	$effect(() => {
+		const max_page_index = total_pages - 1;
+
+		if (page > max_page_index) {
+			page = max_page_index;
+		}
+
+		const start = page * entry_count;
+		const end = start + entry_count;
+		output = new Map(sorted_result.slice(start, end));
 	});
 
 	function read_params() {
-		const page_param = Math.min(0, Number(params.get('page')) ?? page);
-		page = Math.max(page_param, Math.ceil(data.size / entry_count));
+		page = Math.max(0, Number(params.get('page')) ?? page);
 
 		const sort_asc_param = params.get('sort_asc');
 		sort_asc = sort_asc_param ? sort_asc_param === '1' : sort_asc;
@@ -94,11 +137,13 @@
 		sort_key = keys.includes(sort_key_param) ? sort_key_param : sort_key;
 
 		const filters = params.get('filters');
-		filter_enable = { ...empty_filter_enable };
+		for (const key of keys) {
+			filter_enable[key] = false;
+		}
 
 		if (filters) {
-			for (const part of filters.split(';')) {
-				const [key, range] = part.split(':');
+			for (const part of filters.split('.')) {
+				const [key, range] = part.split('~');
 				if (!key || !range) continue;
 
 				const typed = key as keyof T;
@@ -117,62 +162,64 @@
 	}
 
 	let last_filter_str = '';
+	let mounted = false;
 
 	$effect(() => {
-		if (mounted) {
-			const active_keys = keys.filter((k) => filter_enable[k]);
+		const active_keys = keys.filter((k) => filter_enable[k]);
+		const asc = sort_asc;
+		const key = sort_key;
+		const num = page;
 
+		if (mounted) {
 			const active_filters = active_keys.map((k) => {
 				const [min, max] = filter_range[k];
-				return `${String(k)}:${min}-${max}`;
+				return `${String(k)}~${min}-${max}`;
 			});
 
-			const asc = sort_asc;
-			const key = sort_key;
+			let asc_updated: boolean;
+			switch (params.get('sort_asc')) {
+				case '1':
+					asc_updated = !asc;
+					break;
+				case '0':
+					asc_updated = asc;
+					break;
+				default:
+					asc_updated = true;
+					break;
+			}
 
-			untrack(() => {
-				let asc_updated: boolean;
+			let key_updated = params.get('sort_key') !== String(key);
+			let num_updated = params.get('page') !== String(num);
 
-				switch (params.get('sort_asc')) {
-					case '1':
-						asc_updated = !sort_asc;
-						break;
-					case '0':
-						asc_updated = sort_asc;
-						break;
-					default:
-						asc_updated = true;
-						break;
-				}
-				params.set('sort_asc', asc ? '1' : '0');
+			params.set('sort_asc', asc ? '1' : '0');
+			params.set('sort_key', String(key));
+			params.set('page', String(num));
 
-				let key_updated = params.get('sort_key') !== String(key);
-				params.set('sort_key', String(key));
+			if (active_filters.length === 0) {
+				params.delete('filters');
+			} else {
+				params.set('filters', active_filters.join('.'));
+			}
 
-				if (active_filters.length === 0) {
-					params.delete('filters');
-				} else {
-					params.set('filters', active_filters.join(';'));
-				}
+			const active_filter_str = active_keys.join(' ');
+			const url = `${location.pathname}?${params}`;
 
-				const active_filter_str = active_keys.sort().join(',');
-				const url = `${location.pathname}?${params}`;
+			if (url !== `${location.pathname}${location.search}`) {
+				goto(url, {
+					replaceState:
+						active_filter_str === last_filter_str && !(asc_updated || key_updated || num_updated),
+					keepFocus: true,
+					noScroll: true
+				});
 
-				if (url !== `${location.pathname}${location.search}`) {
-					goto(url, {
-						replaceState: active_filter_str === last_filter_str && !(asc_updated || key_updated),
-						keepFocus: true,
-						noScroll: true
-					});
-
-					last_filter_str = active_filter_str;
-				}
-			});
+				last_filter_str = active_filter_str;
+			}
 		}
 	});
 
 	onMount(() => {
-		params = new SvelteURLSearchParams(location.search);
+		params = new URLSearchParams(location.search);
 		read_params();
 		mounted = true;
 	});
@@ -180,7 +227,7 @@
 
 <svelte:window
 	onpopstate={() => {
-		params = new SvelteURLSearchParams(location.search);
+		params = new URLSearchParams(location.search);
 		read_params();
 	}}
 />;
@@ -237,10 +284,6 @@
 	{/if}
 </Modal>
 
-<div>
-	{@render children?.()}
-</div>
-
 <div class="chips">
 	{#each keys as key}
 		{#if filter_enable[key]}
@@ -288,6 +331,38 @@
 
 	<button onclick={() => (sort_asc = !sort_asc)} class="sort-direction">
 		{sort_asc ? '▲' : '▼'}
+	</button>
+</div>
+
+<div>
+	{@render children?.()}
+</div>
+
+<div class="pagination">
+	<button class="nav-btn" disabled={page === 0} onclick={() => (page = Math.max(0, page - 1))}>
+		&laquo; Prev
+	</button>
+
+	{#each page_buttons as btn}
+		{#if btn === '...'}
+			<span class="dots">...</span>
+		{:else}
+			<button
+				class="page-btn"
+				class:active={page === (btn as number) - 1}
+				onclick={() => (page = (btn as number) - 1)}
+			>
+				{btn}
+			</button>
+		{/if}
+	{/each}
+
+	<button
+		class="nav-btn"
+		disabled={page === total_pages - 1}
+		onclick={() => (page = Math.min(total_pages - 1, page + 1))}
+	>
+		Next &raquo;
 	</button>
 </div>
 
@@ -377,6 +452,50 @@
 					color: red;
 				}
 			}
+		}
+	}
+
+	.pagination {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 2rem 0;
+		flex-wrap: wrap;
+
+		button {
+			padding: 0.4rem 0.8rem;
+			border-radius: 6px;
+			border: 1px solid #ccc;
+			background: #fff;
+			cursor: pointer;
+			font-weight: 500;
+			transition: all 0.2s;
+
+			&:hover:not(:disabled) {
+				background: #e0e0e0;
+			}
+
+			&:disabled {
+				opacity: 0.4;
+				cursor: not-allowed;
+			}
+		}
+
+		.page-btn {
+			min-width: 2.5rem;
+
+			&.active {
+				background: #333;
+				color: #fff;
+				border-color: #333;
+			}
+		}
+
+		.dots {
+			padding: 0 0.2rem;
+			color: #888;
+			font-weight: bold;
 		}
 	}
 </style>
