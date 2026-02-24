@@ -57,7 +57,7 @@
 	}
 
 	.logo {
-		width: clamp(100px, 20vw, 200px); /* responsive width */
+		width: clamp(100px, 50vw, 200px); /* responsive width */
 		height: auto;
 		cursor: pointer; /* indicates clickable */
 	}
