@@ -172,7 +172,7 @@
 			}
 		}
 
-		if (update_filter_str) last_filter_str = detected_keys.sort().join(' ');
+		if (update_filter_str) last_filter_str = keys.filter((k) => filter_enable[k]).join(' ');
 	}
 
 	$effect(() => {
@@ -207,7 +207,7 @@
 				params.set('filters', active_filters.join('.'));
 			}
 
-			const active_filter_str = active_keys.sort().join(' ');
+			const active_filter_str = active_keys.join(' ');
 			const url = `${location.pathname}?${params}`;
 
 			if (url !== `${location.pathname}${location.search}`) {
