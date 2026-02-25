@@ -127,7 +127,11 @@
 		output = new Map(sorted_result.slice(start, end));
 	});
 
-	function read_params() {
+	let last_filter_str = '';
+	let mounted = false;
+	let pop_state = false;
+
+	function read_params(update_filter_str: boolean = false) {
 		page = Math.max(0, Number(params.get('page')) ?? page);
 
 		const sort_asc_param = params.get('sort_asc');
@@ -137,17 +141,21 @@
 		sort_key = keys.includes(sort_key_param) ? sort_key_param : sort_key;
 
 		const filters = params.get('filters');
+
 		for (const key of keys) {
 			filter_enable[key] = false;
 		}
 
 		if (filters) {
+			const detected_keys: string[] = [];
+
 			for (const part of filters.split('.')) {
 				const [key, range] = part.split('~');
 				if (!key || !range) continue;
 
 				const typed = key as keyof T;
 				if (!keys.includes(typed)) continue;
+				detected_keys.push(key);
 
 				let [min, max] = range.split('-').map(Number);
 				const [min_limit, max_limit] = ranges[typed];
@@ -158,11 +166,10 @@
 				filter_enable[typed] = true;
 				filter_range[typed] = [min, max];
 			}
+
+			if (update_filter_str) last_filter_str = detected_keys.join(' ');
 		}
 	}
-
-	let last_filter_str = '';
-	let mounted = false;
 
 	$effect(() => {
 		const active_keys = keys.filter((k) => filter_enable[k]);
@@ -171,6 +178,11 @@
 		const num = page;
 
 		if (mounted) {
+			if (pop_state) {
+				pop_state = false;
+				return;
+			}
+
 			const active_filters = active_keys.map((k) => {
 				const [min, max] = filter_range[k];
 				return `${String(k)}~${min}-${max}`;
@@ -228,7 +240,8 @@
 <svelte:window
 	onpopstate={() => {
 		params = new URLSearchParams(location.search);
-		read_params();
+		read_params(true);
+		pop_state = true;
 	}}
 />;
 
@@ -265,6 +278,8 @@
 					{names[selected_key]}
 
 					<RangeInput
+						min={ranges[selected_key][0]}
+						max={ranges[selected_key][1]}
 						bind:from={filter_range[selected_key][0]}
 						bind:to={filter_range[selected_key][1]}
 					/>
