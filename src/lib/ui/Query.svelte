@@ -11,6 +11,7 @@
 		names: NameMap<T>;
 		ranges: RangeMap<T>;
 		sort_by: keyof T;
+		sort_ascending: boolean;
 		entry_count: number;
 		children?: Snippet;
 	};
@@ -21,6 +22,7 @@
 		names,
 		ranges,
 		sort_by,
+		sort_ascending,
 		entry_count,
 		children
 	}: Props = $props();
@@ -35,7 +37,8 @@
 
 	// svelte-ignore state_referenced_locally
 	let sort_key = $state(sort_by);
-	let sort_asc = $state(true);
+	// svelte-ignore state_referenced_locally
+	let sort_asc = $state(sort_ascending);
 	let page = $state(0);
 
 	let filter_enable = $state(
@@ -132,13 +135,13 @@
 	let pop_state = false;
 
 	function read_params(update_filter_str: boolean = false) {
-		page = Math.max(0, Number(params.get('page')) ?? page);
+		page = Math.max(0, parseInt(params.get('page') ?? '') || page);
 
 		const sort_asc_param = params.get('sort_asc');
-		sort_asc = sort_asc_param ? sort_asc_param === '1' : sort_asc;
+		sort_asc = sort_asc_param ? sort_asc_param === '1' : sort_ascending;
 
 		const sort_key_param = (params.get('sort_key') ?? '') as keyof T;
-		sort_key = keys.includes(sort_key_param) ? sort_key_param : sort_key;
+		sort_key = keys.includes(sort_key_param) ? sort_key_param : sort_by;
 
 		const filters = params.get('filters');
 
@@ -168,7 +171,7 @@
 			}
 		}
 
-		if (update_filter_str) last_filter_str = detected_keys.join(' ');
+		if (update_filter_str) last_filter_str = detected_keys.sort().join(' ');
 	}
 
 	$effect(() => {
@@ -189,21 +192,9 @@
 				return `${String(k)}~${min}-${max}`;
 			});
 
-			let asc_updated: boolean;
-			switch (params.get('sort_asc')) {
-				case '1':
-					asc_updated = !asc;
-					break;
-				case '0':
-					asc_updated = asc;
-					break;
-				default:
-					asc_updated = true;
-					break;
-			}
-
-			let key_updated = params.get('sort_key') !== String(key);
-			let num_updated = params.get('page') !== String(num);
+			const asc_updated = params.get('sort_asc') !== (asc ? '1' : '0');
+			const key_updated = params.get('sort_key') !== String(key);
+			const num_updated = params.get('page') !== String(num);
 
 			params.set('sort_asc', asc ? '1' : '0');
 			params.set('sort_key', String(key));
@@ -215,7 +206,7 @@
 				params.set('filters', active_filters.join('.'));
 			}
 
-			const active_filter_str = active_keys.join(' ');
+			const active_filter_str = active_keys.sort().join(' ');
 			const url = `${location.pathname}?${params}`;
 
 			if (url !== `${location.pathname}${location.search}`) {

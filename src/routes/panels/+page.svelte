@@ -85,7 +85,15 @@
 	let sort_by: keyof User = 'price';
 </script>
 
-<Query data={users} bind:output={filtered} {names} {ranges} {sort_by} entry_count={4}>
+<Query
+	data={users}
+	bind:output={filtered}
+	{names}
+	{ranges}
+	{sort_by}
+	sort_ascending={true}
+	entry_count={4}
+>
 	<div style="margin-bottom: 1rem; border-bottom: 2px solid #eee;">
 		<h3>Showing {filtered.size} of {users.size} Items</h3>
 	</div>
