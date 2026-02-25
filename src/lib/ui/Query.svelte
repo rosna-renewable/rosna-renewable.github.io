@@ -135,7 +135,8 @@
 	let pop_state = false;
 
 	function read_params(update_filter_str: boolean = false) {
-		page = Math.max(0, parseInt(params.get('page') ?? '') || page);
+		const page_param = params.get('page');
+		page = Math.max(0, page_param ? parseInt(page_param) || 0 : page);
 
 		const sort_asc_param = params.get('sort_asc');
 		sort_asc = sort_asc_param ? sort_asc_param === '1' : sort_ascending;
