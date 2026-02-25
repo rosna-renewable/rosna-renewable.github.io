@@ -176,6 +176,7 @@
 		const asc = sort_asc;
 		const key = sort_key;
 		const num = page;
+		const range = filter_range;
 
 		if (mounted) {
 			if (pop_state) {
@@ -184,7 +185,7 @@
 			}
 
 			const active_filters = active_keys.map((k) => {
-				const [min, max] = filter_range[k];
+				const [min, max] = range[k];
 				return `${String(k)}~${min}-${max}`;
 			});
 
