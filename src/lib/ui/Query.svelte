@@ -146,9 +146,9 @@
 			filter_enable[key] = false;
 		}
 
-		if (filters) {
-			const detected_keys: string[] = [];
+		const detected_keys: string[] = [];
 
+		if (filters) {
 			for (const part of filters.split('.')) {
 				const [key, range] = part.split('~');
 				if (!key || !range) continue;
@@ -166,9 +166,9 @@
 				filter_enable[typed] = true;
 				filter_range[typed] = [min, max];
 			}
-
-			if (update_filter_str) last_filter_str = detected_keys.join(' ');
 		}
+
+		if (update_filter_str) last_filter_str = detected_keys.join(' ');
 	}
 
 	$effect(() => {
